@@ -34,7 +34,8 @@ class ModuleAdmin(admin.ModelAdmin):
     list_display = ['code', 'name', 'level', 'semester', 'credits', 'weekly_hours', 'is_mandatory']
     list_filter = ['level', 'semester', 'module_type', 'is_mandatory']
     search_fields = ['name', 'code']
-    filter_horizontal = ['prerequisites']
+
+#filter_horizontal = ['prerequisites']
 
 
 @admin.register(AcademicYear)
