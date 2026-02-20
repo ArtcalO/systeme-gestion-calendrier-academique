@@ -46,7 +46,7 @@ class ClassAssignment(models.Model):
     assigned_hours = models.IntegerField()
     assignment_date = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=[
-        ('draft', 'Draft'),
+        ('draft', ''),
         ('confirmed', 'Confirmed'),
         ('cancelled', 'Cancelled')
     ])
