@@ -147,7 +147,7 @@ SIMPLE_JWT = {
 # CORS
 CORS_ALLOWED_ORIGINS = config(
     'CORS_ALLOWED_ORIGINS',
-    default='http://localhost:3000,http://127.0.0.1:3000'
+    default='http://localhost:3000,http://127.0.0.1:3000,http://localhost:5173'
 ).split(',')
 
 # drf-spectacular
@@ -170,6 +170,6 @@ SGCA_CONFIG = {
     'MAX_HOURS_PER_PROFESSOR_PER_WEEK': 20,
     'MIN_HOURS_PER_PROFESSOR_PER_WEEK': 6,
     'MAX_STUDENTS_PER_ROOM': 200,
-    'ACADEMIC_YEAR_START_MONTH': 2,  # Septembre
-    'SCHEDULING_ALGORITHM': 'backtracking',  # 'backtracking' ou 'greedy'
+    'ACADEMIC_YEAR_START_MONTH': 2,
+    'SCHEDULING_ALGORITHM': 'backtracking',
 }

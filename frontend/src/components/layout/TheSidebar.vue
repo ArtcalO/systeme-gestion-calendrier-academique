@@ -133,113 +133,14 @@ export default{
 		<v-list density="compact" color="primary" nav>
 			<v-list-subheader>{{ app_name }}</v-list-subheader>
 			<v-list-item
-				v-if="!active_user_is('eleve','professeur') "
-				prepend-icon="mdi-monitor-dashboard"
-				title="Niveau"
-				:to="{ name: 'niveaux' }"
-				link
-				exact=""
-			>
-			</v-list-item>
-			<v-list-item
-				v-if="!active_user_is('eleve', 'professeur')"
-				prepend-icon="mdi-monitor-dashboard"
-				title="Sections"
-				:to="{ name: 'sections' }"
-				link
-				exact=""
-			>
-			</v-list-item>
-			<v-list-item
-				v-if="!active_user_is('eleve','professeur')"
-				prepend-icon="mdi-monitor-dashboard"
-				title="Classes"
-				:to="{ name: 'classes' }"
-				link
-				exact=""
-			>
-			</v-list-item>
-			<v-list-item
-				v-if="active_user_is('admin')"
 				prepend-icon="mdi-monitor-dashboard"
 				title="Professeurs"
-				:to="{ name: 'profs' }"
-				link
-				exact=""
-			>
-			</v-list-item>
-			<v-list-item
-				v-if="active_user_is('eleve') && active_user.complete"
-				prepend-icon="mdi-monitor-dashboard"
-				title="Classes"
-				:to="{ name: 'classes' }"
+				:to="{ name: 'professeurs' }"
 				link
 				exact=""
 			>
 			</v-list-item>
 
-			<v-list-item
-				v-if="!active_user_is('eleve','professeur')"
-				prepend-icon="mdi-monitor-dashboard"
-				title="Domaines"
-				:to="{ name: 'domaines' }"
-				link
-				exact=""
-			>
-			</v-list-item>
-			<v-list-item
-			    v-if="!active_user_is('eleve')"
-				prepend-icon="mdi-monitor-dashboard"
-				title="Disciplines"
-				:to="{ name: 'disciplines' }"
-				link
-				exact=""
-			>
-			</v-list-item>
-			<v-list-item
-			  v-if="active_user_is('titulaire')"
-				prepend-icon="mdi-monitor-dashboard"
-				title="Palmares"
-				:to="{ name: 'palmares' }"
-				link
-				exact=""
-			>
-			</v-list-item>
-			<v-list-item
-			  v-if="active_user_is('titulaire','admin')"
-				prepend-icon="mdi-monitor-dashboard"
-				title="Bulletins"
-				:to="{ name: 'bulletins' }"
-				link
-				exact=""
-			>
-			</v-list-item>
-			<v-list-item
-				v-if="!active_user_is('eleve')"
-				prepend-icon="mdi-monitor-dashboard"
-				title="Thèmes"
-				:to="{ name: 'themes' }"
-				link
-				exact=""
-			>
-			</v-list-item>
-			<v-list-item
-				v-if="!active_user_is('eleve')"
-				prepend-icon="mdi-monitor-dashboard"
-				title="Leçons"
-				:to="{ name: 'lecons' }"
-				link
-				exact=""
-			>
-			</v-list-item>
-			<v-list-item
-				prepend-icon="mdi-monitor-dashboard"
-				title="Bakame"
-				:to="{ name: 'chatAi' }"
-				link
-				exact=""
-			>
-			</v-list-item>
 		</v-list>
 
 	</v-navigation-drawer>
