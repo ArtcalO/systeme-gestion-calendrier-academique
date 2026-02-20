@@ -1,3 +1,38 @@
-# Logs
-/venv
-/backend_1
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+*.pyd
+
+# Django migrations
+apps/*/migrations/*.py
+apps/*/migrations/__pycache__/
+apps/*/migrations/__init__.py
+
+# Environment
+.env
+.env.*
+!.env.example
+venv/
+env/
+.venv/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+staticfiles/
+media/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
