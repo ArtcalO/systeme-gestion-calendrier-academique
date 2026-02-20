@@ -210,6 +210,7 @@ Le SGCA est conçu comme une extension de BMDSoft. Pour l'intégration:
 
 pip install -r requirements.txt
 cp .env.example .env   # configurer DB
+python manage.py makemigrations users academic scheduling prerequisites course_assignment
 python manage.py migrate
 python manage.py seed_ult_data
 python manage.py runserver
