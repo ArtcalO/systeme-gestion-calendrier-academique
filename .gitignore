@@ -19,6 +19,8 @@ venv/
 env/
 .venv/
 
+/backend_1
+
 # Django
 *.log
 local_settings.py
