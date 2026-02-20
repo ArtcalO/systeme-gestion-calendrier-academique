@@ -206,3 +206,10 @@ Le SGCA est conçu comme une extension de BMDSoft. Pour l'intégration:
 1. **Import de données**: Utilisez l'admin Django ou les endpoints API pour importer les données existantes de BMDSoft
 2. **Authentification unifiée**: Configurez le `AUTH_USER_MODEL` pour pointer vers votre système existant ou synchronisez les utilisateurs
 3. **Webhooks**: Ajoutez des signaux Django (`post_save`) pour notifier BMDSoft des changements
+
+
+pip install -r requirements.txt
+cp .env.example .env   # configurer DB
+python manage.py migrate
+python manage.py seed_ult_data
+python manage.py runserver
