@@ -18,7 +18,7 @@ export default{
 			.then((res)=>{
 				this.useNotifySuccess("Kaze kandi !")
 				this.$store.state.user = res.data
-				this.$router.push('/dashboard')
+				this.$router.push('/profs')
 			})
 			.catch((err)=>{
 				console.log(err)

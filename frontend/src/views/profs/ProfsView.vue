@@ -24,7 +24,7 @@ export default {
 	methods:{
 		fetchProfs(){
 			this.isLoading=true
-			axios.get('profs/')
+			axios.get('/users/professors/')
 			.then((res)=>{
 				this.isLoading=false
 				this.$store.state.profs=res.data.results

@@ -18,8 +18,6 @@
 			var user = JSON.parse(localStorage.getItem('user'));
 			if(user) {
 				this.$store.state.user = user;
-				if(this.active_user_is('eleve') && !user.complete)
-					this.$router.push('profile/complete/'+this.getEleveId('eleve'))
 			}
 		}
 	} 

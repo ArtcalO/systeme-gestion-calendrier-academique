@@ -135,7 +135,7 @@ export default{
 			<v-list-item
 				prepend-icon="mdi-monitor-dashboard"
 				title="Professeurs"
-				:to="{ name: 'professeurs' }"
+				:to="{ name: 'profs' }"
 				link
 				exact=""
 			>
