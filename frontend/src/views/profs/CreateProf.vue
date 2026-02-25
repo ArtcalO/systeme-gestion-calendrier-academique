@@ -25,7 +25,7 @@ export default{
 	methods:{
 		fetchSingleProf(){
 			this.isLoading=true
-			axios.get('profs/'+this.$route.params.id+"/")
+			axios.get('/auth/professors/'+this.$route.params.id+"/")
 			.then((res)=>{
 				this.isLoading=false
 				this.prof.first_name = res.data.user.first_name
@@ -53,7 +53,7 @@ export default{
 			this.isLoading=true
 			
 			if(!this.$route.params.id)
-				axios.post("profs/", this.prof)
+				axios.post("/auth/professors/", this.prof)
 				.then((res)=>{
 					this.useNotifySuccess("Professeur Crée avec success !")
 					this.$store.state.profs.push(res.data)
@@ -65,7 +65,7 @@ export default{
 					this.errorOrRefresh(error, this.createProf)
 				}).finally(()=>this.isLoading=false)
 			else
-				axios.put(`profs/${this.$route.params.id}/`, this.prof)
+				axios.put(`/auth/professors/${this.$route.params.id}/`, this.prof)
 				.then((res)=>{
 					this.useNotifySuccess("prof modifé avec success !")
 					this.$store.state.profs.push(res.data)
