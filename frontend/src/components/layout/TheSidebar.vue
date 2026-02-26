@@ -9,6 +9,10 @@ export default{
 			isLoading:false,
 			confirm:"",
 			visible:false,
+			menus:[
+				{title:"Professeurs",routeName:"professors",icon:"mdi-monitor-dashboard",rights:""},
+				{title:"Année Academique",routeName:"academicYear",icon:"mdi-monitor-dashboard",rights:""},
+			]
 		}
 	},
 	mounted(){
@@ -133,9 +137,10 @@ export default{
 		<v-list density="compact" color="primary" nav>
 			<v-list-subheader>{{ app_name }}</v-list-subheader>
 			<v-list-item
-				prepend-icon="mdi-monitor-dashboard"
-				title="Professeurs"
-				:to="{ name: 'profs' }"
+				v-for="menu in menus" :key="menu.title"
+				:prepend-icon="menu.icon"
+				:title="menu.title"
+				:to="{ name: menu.routeName }"
 				link
 				exact=""
 			>

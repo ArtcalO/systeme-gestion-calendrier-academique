@@ -8,6 +8,7 @@ export default createStore({
     society:{},
     developped_by:{"name":"K SQUAD", "url":"https://ksquad.dev"},
     app_name:"K-SCHOOL",
+    academicYears:[],
     active:'0',
     niveaux:[],
     profs:[],

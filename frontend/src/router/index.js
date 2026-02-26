@@ -12,6 +12,8 @@ import LoginView from '../views/auth/LoginView.vue'
 import ProfsView from '@/views/profs/ProfsView.vue'
 import CreateProf from '@/views/profs/CreateProf.vue'
 
+import AcademicYear from '@/views/academic-year/AcademicYear.vue'
+
 
 const routes= [
     {
@@ -20,11 +22,11 @@ const routes= [
       component: TheLayout,
       children: [
         {
-          path: 'profs',
+          path: 'professors',
           children: [
             {
               path: '',
-              name: 'profs',
+              name: 'professors',
               component: ProfsView,
             },
             {
@@ -36,6 +38,16 @@ const routes= [
               path: 'modify/:id',
               name: 'modifyProf',
               component: CreateProf,
+            },
+          ]
+        },
+        {
+          path: 'academic-year',
+          children: [
+            {
+              path: '',
+              name: 'academicYear',
+              component: AcademicYear,
             },
           ]
         },
