@@ -13,7 +13,9 @@ export default createStore({
     departments:[],
     active:'0',
     levels:[],
-    
+    subjects:[],
+    modules:[],
+
     profs:[],
     classes:[],
     books:[],
