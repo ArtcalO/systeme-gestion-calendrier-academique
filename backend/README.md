@@ -68,7 +68,7 @@ pip install -r requirements.txt
 
 ### 3. Configurer l'environnement
 ```bash
-cp .env.example .env
+copy .env.example .env
 # Éditer .env avec vos paramètres de base de données
 ```
 
@@ -78,7 +78,7 @@ cp .env.example .env
 createdb sgca_ult
 
 # Migrations
-python manage.py makemigrations
+python manage.py makemigrations users academic course_assignment prerequisites scheduling
 python manage.py migrate
 ```
 
