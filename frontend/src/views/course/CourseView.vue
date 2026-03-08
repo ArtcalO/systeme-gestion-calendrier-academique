@@ -43,7 +43,7 @@ export default {
 			<v-col>
 				<h4 class="font-weight-medium">Cours spéciaux</h4>
 			</v-col>
-			<v-col cols="auto" v-if="active_user_is('admin')">
+			<v-col cols="auto" >
 				<el-button type="primary" :icon="Plus" @click="$router.push({ name: 'createCoursSpecial' })"
 					>Cours Spécial</el-button
 				>

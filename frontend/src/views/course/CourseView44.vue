@@ -23,7 +23,7 @@ export default{
 	methods:{
 		fetchCoursSpeciaux(){
 			this.isLoading=true
-			axios.get('coursSpeciaux/')
+			axios.get('/course/')
 			.then((response)=>{
 				this.isLoading=false
 				this.$store.state.classes=response.data.results
