@@ -20,6 +20,7 @@ import CourseView from '@/views/course/CourseView44.vue'
 import ProgramsView from '@/views/programs/ProgramsView.vue'
 import LevelsView from '@/views/levels/LevelsView.vue'
 import SubjectsView from '@/views/subjects/SubjectsView.vue'
+import ModulesView from '@/views/modules/ModulesView.vue'
 
 
 const routes= [
@@ -80,6 +81,11 @@ const routes= [
               path: 'subjects',
               name: 'subjects',
               component: SubjectsView,
+            },
+            {
+              path: 'modules',
+              name: 'modules',
+              component: ModulesView,
             },
             {
               path: 'courses',

@@ -41,11 +41,11 @@ export default {
 	<div>
 		<v-row align="center" class="my-2">
 			<v-col>
-				<h4 class="font-weight-medium">Matière/Domaine/Categories</h4>
+				<h4 class="font-weight-medium">Modules</h4>
 			</v-col>
 			<v-col cols="auto">
 				<el-button type="primary" :icon="Plus"
-					>Matiere</el-button
+					>Module</el-button
 				>
 			</v-col>
 		</v-row>
@@ -64,8 +64,8 @@ export default {
 					</div>
 				</div>
 			</template>
-			<el-table v-loading="isLoading" :data="subjects" style="width: 100%">
-				<el-table-column fixed label="Domaine" min-width="90">
+			<el-table v-loading="isLoading" :data="modules" style="width: 100%">
+				<el-table-column fixed label="Nom" min-width="90">
 					<template #default="scope">
 						<div>
 							<span>
@@ -76,12 +76,89 @@ export default {
 						</div>
 					</template>
 				</el-table-column>
-				<el-table-column fixed label="Code" min-width="90">
+				<el-table-column fixed label="Categorie" min-width="90">
 					<template #default="scope">
 						<div>
 							<span>
 								{{ 
-									scope.row.code
+									scope.row.subject_name
+								}}
+							</span>
+						</div>
+					</template>
+				</el-table-column>
+				<el-table-column fixed label="Niveau" min-width="90">
+					<template #default="scope">
+						<div>
+							<span>
+								{{ 
+									scope.row.level_name
+								}}
+							</span>
+						</div>
+					</template>
+				</el-table-column>
+				<el-table-column fixed label="Programme" min-width="90">
+					<template #default="scope">
+						<div>
+							<span>
+								{{ 
+									scope.row.program_name
+								}}
+							</span>
+						</div>
+					</template>
+				</el-table-column>
+				<el-table-column fixed label="Credits" min-width="90">
+					<template #default="scope">
+						<div>
+							<span>
+								{{ 
+									scope.row.credits
+								}}
+							</span>
+						</div>
+					</template>
+				</el-table-column>
+				<el-table-column fixed label="Heures/Semaine" min-width="90">
+					<template #default="scope">
+						<div>
+							<span>
+								{{ 
+									scope.row.weekly_hours
+								}}
+							</span>
+						</div>
+					</template>
+				</el-table-column>
+				<el-table-column fixed label="Semestre" min-width="90">
+					<template #default="scope">
+						<div>
+							<span>
+								{{ 
+									scope.row.semester
+								}}
+							</span>
+						</div>
+					</template>
+				</el-table-column>
+				<el-table-column fixed label="Prerequis ?" min-width="90">
+					<template #default="scope">
+						<div>
+							<span>
+								{{ 
+									scope.row.has_prerequisites ? "Oui" : "Non"
+								}}
+							</span>
+						</div>
+					</template>
+				</el-table-column>
+				<el-table-column fixed label="Nb Pre-requis" min-width="90">
+					<template #default="scope">
+						<div>
+							<span>
+								{{ 
+									scope.row.prerequisites_list.length
 								}}
 							</span>
 						</div>

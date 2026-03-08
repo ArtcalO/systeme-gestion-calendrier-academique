@@ -17,6 +17,7 @@ export default{
 				{title:"Programmes",routeName:"programs",icon:"mdi-monitor-dashboard",rights:""},
 				{title:"Levels",routeName:"levels",icon:"mdi-monitor-dashboard",rights:""},
 				{title:"Matière/Domaine",routeName:"subjects",icon:"mdi-monitor-dashboard",rights:""},
+				{title:"Modules",routeName:"modules",icon:"mdi-monitor-dashboard",rights:""},
 				{title:"Cours",routeName:"courses",icon:"mdi-monitor-dashboard",rights:""},
 			]
 		}
