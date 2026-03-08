@@ -9,8 +9,11 @@ export default createStore({
     developped_by:{"name":"K SQUAD", "url":"https://ksquad.dev"},
     app_name:"K-SCHOOL",
     academicYears:[],
+    faculties:[],
+    departments:[],
     active:'0',
-    niveaux:[],
+    levels:[],
+    
     profs:[],
     classes:[],
     books:[],

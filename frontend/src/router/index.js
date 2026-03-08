@@ -12,7 +12,13 @@ import LoginView from '../views/auth/LoginView.vue'
 import ProfsView from '@/views/profs/ProfsView.vue'
 import CreateProf from '@/views/profs/CreateProf.vue'
 
+//academic
 import AcademicYear from '@/views/academic-year/AcademicYear.vue'
+import FacultiesView from '@/views/faculties/FacultiesView.vue'
+import DepartmentsView from '@/views/departments/DepartmentsView.vue'
+import CourseView from '@/views/course/CourseView.vue'
+import ProgramsView from '@/views/programs/ProgramsView.vue'
+import LevelsView from '@/views/levels/LevelsView.vue'
 
 
 const routes= [
@@ -42,16 +48,40 @@ const routes= [
           ]
         },
         {
-          path: 'academic-year',
+          path: 'academic',
           children: [
             {
-              path: '',
+              path: 'academic-year',
               name: 'academicYear',
               component: AcademicYear,
             },
+            {
+              path: 'faculties',
+              name: 'faculties',
+              component: FacultiesView,
+            },
+            {
+              path: 'departments',
+              name: 'departments',
+              component: DepartmentsView,
+            },
+            {
+              path: 'programs',
+              name: 'programs',
+              component: ProgramsView,
+            },
+            {
+              path: 'levels',
+              name: 'levels',
+              component: LevelsView,
+            },
+            {
+              path: 'courses',
+              name: 'courses',
+              component: CourseView,
+            },
           ]
         },
-
       ],
       meta: { requiresAuth: true },
     },    
