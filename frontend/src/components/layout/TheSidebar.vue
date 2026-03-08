@@ -12,6 +12,11 @@ export default{
 			menus:[
 				{title:"Professeurs",routeName:"professors",icon:"mdi-monitor-dashboard",rights:""},
 				{title:"Année Academique",routeName:"academicYear",icon:"mdi-monitor-dashboard",rights:""},
+				{title:"Facultés",routeName:"faculties",icon:"mdi-monitor-dashboard",rights:""},
+				{title:"Departments",routeName:"departments",icon:"mdi-monitor-dashboard",rights:""},
+				{title:"Programmes",routeName:"programs",icon:"mdi-monitor-dashboard",rights:""},
+				{title:"Cours",routeName:"courses",icon:"mdi-monitor-dashboard",rights:""},
+				{title:"Levels",routeName:"levels",icon:"mdi-monitor-dashboard",rights:""},
 			]
 		}
 	},
