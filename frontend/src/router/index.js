@@ -16,9 +16,10 @@ import CreateProf from '@/views/profs/CreateProf.vue'
 import AcademicYear from '@/views/academic-year/AcademicYear.vue'
 import FacultiesView from '@/views/faculties/FacultiesView.vue'
 import DepartmentsView from '@/views/departments/DepartmentsView.vue'
-import CourseView from '@/views/course/CourseView.vue'
+import CourseView from '@/views/course/CourseView44.vue'
 import ProgramsView from '@/views/programs/ProgramsView.vue'
 import LevelsView from '@/views/levels/LevelsView.vue'
+import SubjectsView from '@/views/subjects/SubjectsView.vue'
 
 
 const routes= [
@@ -74,6 +75,11 @@ const routes= [
               path: 'levels',
               name: 'levels',
               component: LevelsView,
+            },
+            {
+              path: 'subjects',
+              name: 'subjects',
+              component: SubjectsView,
             },
             {
               path: 'courses',
