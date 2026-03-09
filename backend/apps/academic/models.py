@@ -53,7 +53,8 @@ class Program(models.Model):
 
     name = models.CharField(max_length=200)
     code = models.CharField(max_length=20, unique=True)
-    department = models.ForeignKey(Department, on_delete=models.CASCADE, related_name='programs')
+    department = models.ForeignKey(Department, on_delete=models.CASCADE,null=True, blank=True, related_name='programs')
+    faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE,null=True, blank=True, related_name='programs')
     program_type = models.CharField(max_length=20, choices=ProgramType.choices)
     duration_years = models.PositiveIntegerField(default=3,
                                                   verbose_name="Durée en années")

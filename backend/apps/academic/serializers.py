@@ -59,7 +59,7 @@ class ModuleSerializer(serializers.ModelSerializer):
                   'prerequisites_list', 'has_prerequisites']
 
     def get_prerequisites_list(self, obj):
-        return list(obj.prerequisites.values('id', 'code', 'name'))
+        return list(obj.prerequisites.values('id', 'description', 'prerequisite'))
 
     def get_has_prerequisites(self, obj):
         return obj.prerequisites.exists()

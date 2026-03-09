@@ -23,7 +23,7 @@ class User(AbstractUser):
     employee_id = models.CharField(max_length=50, unique=True, null=True, blank=True,
                                    verbose_name="Matricule")
     is_active = models.BooleanField(default=True)
-    date_joined = models.DateTimeField(auto_now_add=True)
+    # date_joined = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         verbose_name = "Utilisateur"

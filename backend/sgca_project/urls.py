@@ -16,6 +16,7 @@ urlpatterns = [
 
     # API v1
     path('api/v1/auth/', include('apps.users.urls')),
+    path('api/v1/auth/', include('rest_framework.urls')),
     path('api/v1/academic/', include('apps.academic.urls')),
     path('api/v1/scheduling/', include('apps.scheduling.urls')),
     path('api/v1/prerequisites/', include('apps.prerequisites.urls')),

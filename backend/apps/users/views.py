@@ -23,7 +23,7 @@ class UserViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['role', 'is_active']
     search_fields = ['username', 'first_name', 'last_name', 'email', 'employee_id']
-    ordering_fields = ['last_name', 'date_joined', 'role']
+    ordering_fields = ['last_name',  'role']
 
     def get_serializer_class(self):
         if self.action in ['create', 'register']:

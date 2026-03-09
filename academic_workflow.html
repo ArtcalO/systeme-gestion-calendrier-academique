@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Academic Workflow — Nexus System</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Exo+2:wght@300;400;600&family=Share+Tech+Mono&display=swap');
+  :root {
+    --neon-cyan:#00f5ff;--neon-blue:#0080ff;--neon-violet:#8b00ff;
+    --neon-green:#00ff88;--neon-pink:#ff006e;--dark-bg:#020813;
+    --panel-bg:rgba(0,20,50,0.85);--glass:rgba(0,240,255,0.05);
+    --text-dim:rgba(0,245,255,0.5);--border-glow:rgba(0,245,255,0.3);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--dark-bg);font-family:'Exo 2',sans-serif;color:#e0f4ff;overflow-x:hidden;min-height:100vh;padding-bottom:40px}
+  .bg-grid{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;background-image:linear-gradient(rgba(0,245,255,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,0.04) 1px,transparent 1px);background-size:50px 50px;animation:gridMove 20s linear infinite}
+  @keyframes gridMove{0%{transform:translateY(0)}100%{transform:translateY(50px)}}
+  .scanline{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.03) 2px,rgba(0,0,0,0.03) 4px);pointer-events:none}
+  .bg-orb{position:fixed;border-radius:50%;filter:blur(80px);opacity:.12;z-index:0;animation:orbFloat 8s ease-in-out infinite}
+  .orb1{width:600px;height:600px;background:var(--neon-blue);top:-200px;left:-200px}
+  .orb2{width:400px;height:400px;background:var(--neon-violet);bottom:-100px;right:-100px;animation-delay:3s}
+  .orb3{width:300px;height:300px;background:var(--neon-cyan);top:50%;left:50%;animation-delay:6s}
+  @keyframes orbFloat{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(20px,-20px) scale(1.1)}}
+  header{position:relative;z-index:10;text-align:center;padding:40px 20px 20px}
+  .logo-text{font-family:'Orbitron',monospace;font-size:2.2rem;font-weight:900;background:linear-gradient(135deg,var(--neon-cyan),var(--neon-blue),var(--neon-violet));-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:6px;animation:logoGlow 3s ease-in-out infinite}
+  @keyframes logoGlow{0%,100%{filter:drop-shadow(0 0 8px rgba(0,245,255,.6))}50%{filter:drop-shadow(0 0 20px rgba(0,245,255,1))}}
+  .logo-sub{font-family:'Share Tech Mono',monospace;color:var(--text-dim);font-size:.75rem;letter-spacing:4px;margin-top:6px}
+  .tabs{position:relative;z-index:10;display:flex;justify-content:center;gap:12px;padding:20px;flex-wrap:wrap}
+  .tab-btn{font-family:'Orbitron',monospace;font-size:.7rem;font-weight:700;padding:10px 22px;cursor:pointer;background:transparent;border:1px solid var(--border-glow);color:var(--text-dim);letter-spacing:2px;text-transform:uppercase;clip-path:polygon(8px 0%,100% 0%,calc(100% - 8px) 100%,0% 100%);transition:all .3s ease}
+  .tab-btn:hover,.tab-btn.active{background:rgba(0,245,255,.1);border-color:var(--neon-cyan);color:var(--neon-cyan);box-shadow:0 0 20px rgba(0,245,255,.3),inset 0 0 20px rgba(0,245,255,.05)}
+  .tab-content{display:none}.tab-content.active{display:block}
+  .workflow-container{position:relative;z-index:10;max-width:1100px;margin:0 auto;padding:20px}
+  .steps-wrapper{display:flex;flex-direction:column;gap:0;align-items:center}
+  .step-card{position:relative;width:100%;max-width:750px;background:var(--panel-bg);border:1px solid var(--border-glow);padding:20px 24px 20px 80px;clip-path:polygon(0 0,calc(100% - 16px) 0,100% 16px,100% 100%,16px 100%,0 calc(100% - 16px));opacity:0;transform:translateX(-40px);transition:all .6s ease;backdrop-filter:blur(10px)}
+  .step-card.visible{opacity:1;transform:translateX(0)}
+  .step-card:hover{border-color:var(--neon-cyan);box-shadow:0 0 30px rgba(0,245,255,.2),inset 0 0 30px rgba(0,245,255,.03);transform:translateX(5px)}
+  .step-num{position:absolute;left:-1px;top:50%;transform:translateY(-50%);width:56px;height:56px;font-family:'Orbitron',monospace;font-size:1.1rem;font-weight:900;display:flex;align-items:center;justify-content:center;clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%)}
+  .step-num.admin{background:linear-gradient(135deg,#003366,#0066cc);color:var(--neon-cyan);box-shadow:0 0 15px rgba(0,245,255,.5)}
+  .step-num.system{background:linear-gradient(135deg,#330066,#6600cc);color:#cc88ff;box-shadow:0 0 15px rgba(139,0,255,.5)}
+  .step-num.teacher{background:linear-gradient(135deg,#003322,#006644);color:var(--neon-green);box-shadow:0 0 15px rgba(0,255,136,.5)}
+  .step-num.student{background:linear-gradient(135deg,#660033,#cc0066);color:#ff88aa;box-shadow:0 0 15px rgba(255,0,110,.5)}
+  .step-role{font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:3px;text-transform:uppercase;margin-bottom:4px}
+  .role-admin{color:var(--neon-cyan)}.role-system{color:#cc88ff}.role-teacher{color:var(--neon-green)}.role-student{color:#ff88aa}
+  .step-title{font-family:'Orbitron',monospace;font-size:.85rem;font-weight:700;color:#e0f4ff;margin-bottom:6px;letter-spacing:1px}
+  .step-desc{font-size:.8rem;color:var(--text-dim);line-height:1.5}
+  .step-api{display:inline-block;margin-top:8px;font-family:'Share Tech Mono',monospace;font-size:.7rem;background:rgba(0,128,255,.1);border:1px solid rgba(0,128,255,.4);color:#66aaff;padding:3px 10px;clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%)}
+  .step-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .tag{font-size:.65rem;padding:2px 8px;border-radius:2px;font-family:'Share Tech Mono',monospace}
+  .tag-check{background:rgba(0,255,136,.1);border:1px solid rgba(0,255,136,.3);color:var(--neon-green)}
+  .tag-auto{background:rgba(139,0,255,.1);border:1px solid rgba(139,0,255,.3);color:#bb88ff}
+  .tag-pub{background:rgba(0,245,255,.1);border:1px solid rgba(0,245,255,.3);color:var(--neon-cyan)}
+  .connector{width:2px;height:40px;background:linear-gradient(to bottom,var(--neon-cyan),var(--neon-violet));position:relative;opacity:.6;animation:pulse 2s ease-in-out infinite}
+  .connector::after{content:'▼';position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);color:var(--neon-violet);font-size:.7rem;animation:bounce 1s ease-in-out infinite}
+  @keyframes bounce{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(4px)}}
+  @keyframes pulse{0%,100%{opacity:.4}50%{opacity:1;box-shadow:0 0 10px var(--neon-cyan)}}
+  .ucd-container{position:relative;z-index:10;max-width:1100px;margin:0 auto;padding:20px}
+  .ucd-controls{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px;align-items:center}
+  .ucd-btn{font-family:'Orbitron',monospace;font-size:.65rem;font-weight:700;padding:8px 18px;cursor:pointer;background:transparent;border:1px solid var(--border-glow);color:var(--text-dim);letter-spacing:2px;clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);transition:all .3s ease}
+  .ucd-btn:hover,.ucd-btn.selected{background:rgba(0,245,255,.1);border-color:var(--neon-cyan);color:var(--neon-cyan);box-shadow:0 0 15px rgba(0,245,255,.2)}
+  .ucd-canvas-wrapper{position:relative;background:var(--panel-bg);border:1px solid var(--border-glow);border-radius:4px;backdrop-filter:blur(10px);overflow:hidden}
+  #ucd-canvas{display:block;width:100%}
+  .img-container{position:relative;z-index:10;max-width:900px;margin:0 auto;padding:20px}
+  .gen-panel{background:var(--panel-bg);border:1px solid var(--border-glow);padding:30px;clip-path:polygon(0 0,calc(100% - 20px) 0,100% 20px,100% 100%,20px 100%,0 calc(100% - 20px));backdrop-filter:blur(10px)}
+  .gen-title{font-family:'Orbitron',monospace;font-size:.9rem;font-weight:700;color:var(--neon-cyan);letter-spacing:3px;margin-bottom:20px;text-transform:uppercase}
+  .gen-row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;align-items:center}
+  .gen-label{font-family:'Share Tech Mono',monospace;font-size:.7rem;color:var(--text-dim);letter-spacing:2px;min-width:100px}
+  .gen-select{flex:1;min-width:160px;background:rgba(0,20,50,.8);border:1px solid var(--border-glow);color:#e0f4ff;padding:8px 14px;font-family:'Share Tech Mono',monospace;font-size:.75rem;outline:none;transition:border-color .3s}
+  .gen-select:focus{border-color:var(--neon-cyan);box-shadow:0 0 10px rgba(0,245,255,.2)}
+  .gen-generate-btn{width:100%;margin-top:10px;font-family:'Orbitron',monospace;font-size:.8rem;font-weight:700;padding:14px;cursor:pointer;background:linear-gradient(135deg,rgba(0,128,255,.2),rgba(0,245,255,.1));border:1px solid var(--neon-cyan);color:var(--neon-cyan);letter-spacing:3px;text-transform:uppercase;clip-path:polygon(10px 0%,100% 0%,calc(100% - 10px) 100%,0% 100%);transition:all .3s ease;position:relative;overflow:hidden}
+  .gen-generate-btn::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(0,245,255,.15),transparent);transition:left .5s}
+  .gen-generate-btn:hover::before{left:100%}
+  .gen-generate-btn:hover{background:linear-gradient(135deg,rgba(0,128,255,.4),rgba(0,245,255,.2));box-shadow:0 0 30px rgba(0,245,255,.4)}
+  .gen-output{margin-top:20px;min-height:200px;background:rgba(0,10,30,.8);border:1px solid rgba(0,245,255,.15);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;gap:16px}
+  #generated-canvas{max-width:100%;border:1px solid rgba(0,245,255,.2);box-shadow:0 0 30px rgba(0,245,255,.15)}
+  .gen-placeholder{font-family:'Share Tech Mono',monospace;color:var(--text-dim);font-size:.75rem;text-align:center}
+  .download-btn{font-family:'Orbitron',monospace;font-size:.65rem;font-weight:700;padding:8px 20px;cursor:pointer;background:rgba(0,255,136,.1);border:1px solid var(--neon-green);color:var(--neon-green);letter-spacing:2px;clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);text-decoration:none;transition:all .3s}
+  .download-btn:hover{background:rgba(0,255,136,.2);box-shadow:0 0 15px rgba(0,255,136,.3)}
+  .status-bar{position:fixed;bottom:0;left:0;right:0;z-index:100;background:rgba(2,8,19,.95);border-top:1px solid var(--border-glow);padding:6px 20px;display:flex;gap:20px;align-items:center;font-family:'Share Tech Mono',monospace;font-size:.65rem}
+  .status-dot{width:6px;height:6px;border-radius:50%;background:var(--neon-green);animation:blink 2s ease-in-out infinite;box-shadow:0 0 6px var(--neon-green)}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+  .status-text{color:var(--text-dim)}.status-text span{color:var(--neon-cyan)}
+  .particles-canvas{position:fixed;top:0;left:0;z-index:1;pointer-events:none}
+  .section-header{text-align:center;margin-bottom:24px;font-family:'Orbitron',monospace;font-size:.65rem;letter-spacing:5px;color:var(--text-dim);text-transform:uppercase}
+  .section-header::before,.section-header::after{content:'◆';margin:0 12px;color:var(--neon-violet);font-size:.5rem}
+  .loading-bar{width:100%;height:2px;background:linear-gradient(90deg,var(--neon-cyan),var(--neon-violet),var(--neon-cyan));background-size:200% 100%;animation:loadingAnim 1.5s linear infinite}
+  @keyframes loadingAnim{0%{background-position:0% 0%}100%{background-position:200% 0%}}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="scanline"></div>
+<div class="bg-orb orb1"></div>
+<div class="bg-orb orb2"></div>
+<div class="bg-orb orb3"></div>
+<canvas class="particles-canvas" id="particlesCanvas"></canvas>
+
+<header>
+  <div class="logo-text">NEXUS ACADEMIC</div>
+  <div class="logo-sub">// SYSTÈME DE GESTION UNIVERSITAIRE — v2.5.1</div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('workflow',this)">⬡ Workflow</button>
+  <button class="tab-btn" onclick="switchTab('usecase',this)">⬡ Use Case</button>
+  <button class="tab-btn" onclick="switchTab('generator',this)">⬡ Générateur Image</button>
+</div>
+
+<!-- WORKFLOW -->
+<div id="tab-workflow" class="tab-content active">
+  <div class="workflow-container">
+    <div class="section-header">Flux Opérationnel du Système</div>
+    <div class="steps-wrapper">
+      <div class="step-card">
+        <div class="step-num admin">01</div>
+        <div class="step-role role-admin">// Admin</div>
+        <div class="step-title">Création de la Structure Académique</div>
+        <div class="step-desc">Définir la hiérarchie complète : Faculté → Département → Programme → Niveaux → Modules</div>
+        <div class="step-tags"><span class="tag tag-pub">CRUD</span><span class="tag tag-auto">Hiérarchique</span></div>
+      </div>
+      <div class="connector"></div>
+      <div class="step-card">
+        <div class="step-num admin">02</div>
+        <div class="step-role role-admin">// Admin</div>
+        <div class="step-title">Définition des Prérequis entre Modules</div>
+        <div class="step-desc">Configurer les dépendances entre modules — graphe orienté acyclique validé automatiquement</div>
+        <div class="step-tags"><span class="tag tag-check">Validation DAG</span><span class="tag tag-auto">Graph Engine</span></div>
+      </div>
+      <div class="connector"></div>
+      <div class="step-card">
+        <div class="step-num admin">03</div>
+        <div class="step-role role-admin">// Admin</div>
+        <div class="step-title">Création des Cours — Année Académique</div>
+        <div class="step-desc">Instancier les cours pour l'année courante, définir les charges horaires et capacités d'accueil</div>
+        <div class="step-tags"><span class="tag tag-pub">Calendrier</span><span class="tag tag-auto">Auto-Config</span></div>
+      </div>
+      <div class="connector"></div>
+      <div class="step-card">
+        <div class="step-num system">04</div>
+        <div class="step-role role-system">// Algorithme</div>
+        <div class="step-title">Lancement de l'Algorithme d'Attribution</div>
+        <div class="step-desc">Optimisation multi-contraintes : disponibilités, qualifications, charges horaires. Attribution automatique.</div>
+        <div class="step-api">POST /api/v1/assignments/run_algorithm/</div>
+        <div class="step-tags"><span class="tag tag-auto">AI Optimizer</span><span class="tag tag-check">Async Task</span></div>
+      </div>
+      <div class="connector"></div>
+      <div class="step-card">
+        <div class="step-num teacher">05</div>
+        <div class="step-role role-teacher">// Professeurs</div>
+        <div class="step-title">Confirmation des Attributions</div>
+        <div class="step-desc">Chaque enseignant consulte et confirme son attribution. Possibilité de demande de révision.</div>
+        <div class="step-tags"><span class="tag tag-check">Notification Push</span><span class="tag tag-pub">Workflow Approbation</span></div>
+      </div>
+      <div class="connector"></div>
+      <div class="step-card">
+        <div class="step-num system">06</div>
+        <div class="step-role role-system">// Système</div>
+        <div class="step-title">Génération des Emplois du Temps</div>
+        <div class="step-desc">Planification automatique : salles, créneaux, résolution de conflits. Génération des EDT consolidés.</div>
+        <div class="step-api">POST /api/v1/scheduling/schedules/generate/</div>
+        <div class="step-tags"><span class="tag tag-auto">Scheduler</span><span class="tag tag-check">Conflict Check</span></div>
+      </div>
+      <div class="connector"></div>
+      <div class="step-card">
+        <div class="step-num admin">07</div>
+        <div class="step-role role-admin">// Admin</div>
+        <div class="step-title">Publication des Emplois du Temps Validés</div>
+        <div class="step-desc">Validation finale et publication des EDT. Notification automatique à tous les utilisateurs.</div>
+        <div class="step-tags"><span class="tag tag-pub">Publié</span><span class="tag tag-auto">Broadcast</span></div>
+      </div>
+      <div class="connector"></div>
+      <div class="step-card">
+        <div class="step-num student">08</div>
+        <div class="step-role role-student">// Étudiants</div>
+        <div class="step-title">Inscription aux Cours</div>
+        <div class="step-desc">Soumission des demandes avec vérification automatique des prérequis → Approbation ou rejet immédiat</div>
+        <div class="step-api">POST /api/v1/prerequisites/enrollment-requests/</div>
+        <div class="step-tags"><span class="tag tag-auto">Vérification Auto</span><span class="tag tag-check">Approbation/Rejet</span><span class="tag tag-pub">Immédiat</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- USE CASE -->
+<div id="tab-usecase" class="tab-content">
+  <div class="ucd-container">
+    <div class="section-header">Diagrammes de Cas d'Utilisation</div>
+    <div class="ucd-controls">
+      <button class="ucd-btn selected" onclick="showUCD('all',this)">Tout Afficher</button>
+      <button class="ucd-btn" onclick="showUCD('admin',this)">Admin</button>
+      <button class="ucd-btn" onclick="showUCD('teacher',this)">Professeur</button>
+      <button class="ucd-btn" onclick="showUCD('student',this)">Étudiant</button>
+      <button class="ucd-btn" onclick="showUCD('system',this)">Système Auto</button>
+    </div>
+    <div class="ucd-canvas-wrapper">
+      <canvas id="ucd-canvas" height="620"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- GENERATOR -->
+<div id="tab-generator" class="tab-content">
+  <div class="img-container">
+    <div class="section-header">Générateur d'Image Diagramme</div>
+    <div class="gen-panel">
+      <div class="gen-title">// Paramètres de Génération</div>
+      <div class="gen-row">
+        <span class="gen-label">TYPE</span>
+        <select class="gen-select" id="genType">
+          <option value="workflow">Workflow Complet (8 étapes)</option>
+          <option value="usecase_admin">Use Case — Admin</option>
+          <option value="usecase_teacher">Use Case — Professeur</option>
+          <option value="usecase_student">Use Case — Étudiant</option>
+          <option value="usecase_all">Use Case — Tous Acteurs</option>
+          <option value="structure">Hiérarchie Académique</option>
+        </select>
+      </div>
+      <div class="gen-row">
+        <span class="gen-label">THÈME</span>
+        <select class="gen-select" id="genTheme">
+          <option value="cyber">Cyber Dark</option>
+          <option value="blueprint">Blueprint</option>
+          <option value="neon">Neon Grid</option>
+          <option value="minimal">Minimal Clean</option>
+        </select>
+      </div>
+      <div class="gen-row">
+        <span class="gen-label">RÉSOLUTION</span>
+        <select class="gen-select" id="genResolution">
+          <option value="1200x700">1200 × 700</option>
+          <option value="1600x900">1600 × 900</option>
+          <option value="800x600">800 × 600</option>
+        </select>
+      </div>
+      <button class="gen-generate-btn" onclick="generateImage()">⬡ GÉNÉRER L'IMAGE</button>
+      <div class="gen-output" id="genOutput">
+        <div class="gen-placeholder">// En attente de génération...<br><br>Sélectionnez le type et le thème, puis cliquez sur Générer</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="status-bar">
+  <div class="status-dot"></div>
+  <span class="status-text">NEXUS <span>ONLINE</span></span>
+  <span class="status-text">API <span>v2.5.1</span></span>
+  <span class="status-text" id="statusClock"></span>
+  <span class="status-text" style="margin-left:auto">SYS <span>NOMINAL</span></span>
+</div>
+
+<script>
+// TABS
+function switchTab(name,btn){
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if(name==='usecase') setTimeout(()=>drawUCD('all'),120);
+}
+
+// PARTICLES
+const pc=document.getElementById('particlesCanvas');
+const pctx=pc.getContext('2d');
+let pts=[];
+function resizePc(){pc.width=window.innerWidth;pc.height=window.innerHeight}
+resizePc();window.addEventListener('resize',resizePc);
+for(let i=0;i<60;i++) pts.push({x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,vx:(Math.random()-.5)*.4,vy:(Math.random()-.5)*.4,r:Math.random()*1.5+.3,a:Math.random()*.5+.1});
+function animPts(){
+  pctx.clearRect(0,0,pc.width,pc.height);
+  pts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;if(p.x<0)p.x=pc.width;if(p.x>pc.width)p.x=0;if(p.y<0)p.y=pc.height;if(p.y>pc.height)p.y=0;pctx.beginPath();pctx.arc(p.x,p.y,p.r,0,Math.PI*2);pctx.fillStyle=`rgba(0,245,255,${p.a})`;pctx.fill();});
+  requestAnimationFrame(animPts);
+}
+animPts();
+
+// STEP ANIMATION
+function revealSteps(){
+  const cards=document.querySelectorAll('.step-card');
+  cards.forEach((c,i)=>setTimeout(()=>c.classList.add('visible'),100+i*120));
+}
+setTimeout(revealSteps,300);
+
+// CLOCK
+function updateClock(){const n=new Date();document.getElementById('statusClock').innerHTML=`TIME <span>${n.toTimeString().slice(0,8)}</span>`}
+setInterval(updateClock,1000);updateClock();
+
+// USE CASE DRAW
+let curFilter='all';
+function showUCD(f,btn){
+  curFilter=f;
+  document.querySelectorAll('.ucd-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  drawUCD(f);
+}
+
+const ACT_COLORS={admin:'#00f5ff',teacher:'#00ff88',student:'#ff88aa',system:'#cc88ff'};
+const ACT_LABELS={admin:'Administrateur',teacher:'Professeur',student:'Étudiant',system:'Système'};
+
+const UCS=[
+  {id:'uc1', label:'Créer structure\nacadémique', actor:'admin'},
+  {id:'uc2', label:'Définir\nprérequis',          actor:'admin'},
+  {id:'uc3', label:'Créer cours',                  actor:'admin'},
+  {id:'uc4', label:'Lancer algorithme\nd\'attribution', actor:'admin'},
+  {id:'uc5', label:'Publier EDT',                  actor:'admin'},
+  {id:'uc6', label:'Confirmer\nattribution',       actor:'teacher'},
+  {id:'uc7', label:'Demander révision',            actor:'teacher'},
+  {id:'uc8', label:'S\'inscrire\nau cours',        actor:'student'},
+  {id:'uc9', label:'Consulter EDT',                actor:'student'},
+  {id:'uc10',label:'Vérifier prérequis',           actor:'system'},
+  {id:'uc11',label:'Générer EDT',                  actor:'system'},
+  {id:'uc12',label:'Attribuer cours auto',         actor:'system'},
+];
+
+const RELS=[
+  {from:'admin',  to:'uc1', type:'assoc'},
+  {from:'admin',  to:'uc2', type:'assoc'},
+  {from:'admin',  to:'uc3', type:'assoc'},
+  {from:'admin',  to:'uc4', type:'assoc'},
+  {from:'admin',  to:'uc5', type:'assoc'},
+  {from:'teacher',to:'uc6', type:'assoc'},
+  {from:'teacher',to:'uc7', type:'assoc'},
+  {from:'student',to:'uc8', type:'assoc'},
+  {from:'student',to:'uc9', type:'assoc'},
+  {from:'system', to:'uc10',type:'assoc'},
+  {from:'system', to:'uc11',type:'assoc'},
+  {from:'system', to:'uc12',type:'assoc'},
+  {from:'uc4',    to:'uc12',type:'include'},
+  {from:'uc8',    to:'uc10',type:'include'},
+  {from:'uc4',    to:'uc11',type:'extend'},
+];
+
+function drawUCD(filter){
+  const canvas=document.getElementById('ucd-canvas');
+  const wrap=canvas.parentElement;
+  canvas.width=wrap.offsetWidth;
+  const W=canvas.width, H=620;
+  canvas.height=H;
+  const ctx=canvas.getContext('2d');
+
+  ctx.fillStyle='#020813';ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(0,245,255,0.04)';ctx.lineWidth=1;
+  for(let x=0;x<W;x+=40){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=40){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  // System box
+  const bx=160,by=40,bw=W-220,bh=H-60;
+  ctx.save();ctx.strokeStyle='rgba(0,245,255,0.3)';ctx.lineWidth=1.5;ctx.setLineDash([8,4]);
+  ctx.strokeRect(bx,by,bw,bh);ctx.restore();
+  ctx.fillStyle='rgba(0,245,255,0.6)';ctx.font='700 11px Orbitron,monospace';
+  ctx.fillText('SYSTÈME DE GESTION ACADÉMIQUE',bx+14,by+16);
+
+  // Actor positions (left side)
+  const actorX=70;
+  const actorPositions={
+    admin:  {x:actorX,y:H*0.22},
+    teacher:{x:actorX,y:H*0.5},
+    student:{x:actorX,y:H*0.78},
+    system: {x:W-60, y:H*0.5},
+  };
+
+  // UC layout: distribute in the box
+  const ucLayout={
+    uc1: {rx:0.18,ry:0.12},uc2:{rx:0.42,ry:0.12},uc3:{rx:0.66,ry:0.12},
+    uc4: {rx:0.18,ry:0.38},uc5:{rx:0.66,ry:0.38},
+    uc6: {rx:0.28,ry:0.62},uc7:{rx:0.55,ry:0.62},
+    uc8: {rx:0.22,ry:0.85},uc9:{rx:0.5, ry:0.85},
+    uc10:{rx:0.72,ry:0.78},uc11:{rx:0.72,ry:0.45},uc12:{rx:0.72,ry:0.6},
+  };
+
+  function ucPos(id){
+    const l=ucLayout[id];
+    return {x:bx+30+l.rx*(bw-60), y:by+20+l.ry*(bh-40)};
+  }
+
+  const activeActors=filter==='all'?['admin','teacher','student','system']:[filter,...(filter!=='system'?['system']:[])];
+  const activeUCs=filter==='all'?UCS:UCS.filter(u=>u.actor===filter||(filter!=='system'&&u.actor==='system'));
+
+  // Draw relation lines
+  RELS.forEach(r=>{
+    const isActorRel=['admin','teacher','student','system'].includes(r.from);
+    if(isActorRel){
+      const uc=UCS.find(u=>u.id===r.to);if(!uc)return;
+      if(filter!=='all'&&uc.actor!==filter&&!(activeActors.includes(r.from)&&filter!=='system'))return;
+      if(!activeUCs.find(u=>u.id===r.to))return;
+      const ap=actorPositions[r.from];
+      const up=ucPos(r.to);
+      ctx.beginPath();
+      const sx=r.from==='system'?ap.x-18:ap.x+18;
+      ctx.moveTo(sx,ap.y);ctx.lineTo(up.x,up.y);
+      ctx.strokeStyle=ACT_COLORS[r.from]+'55';ctx.lineWidth=1.3;ctx.setLineDash([]);
+      ctx.stroke();
+    } else {
+      const fu=UCS.find(u=>u.id===r.from),tu=UCS.find(u=>u.id===r.to);if(!fu||!tu)return;
+      if(!activeUCs.find(u=>u.id===r.from)||!activeUCs.find(u=>u.id===r.to))return;
+      const fp=ucPos(r.from),tp=ucPos(r.to);
+      ctx.beginPath();ctx.moveTo(fp.x,fp.y);ctx.lineTo(tp.x,tp.y);
+      ctx.strokeStyle=r.type==='include'?'rgba(0,255,136,0.55)':'rgba(255,200,0,0.55)';
+      ctx.lineWidth=1;ctx.setLineDash([5,3]);ctx.stroke();ctx.setLineDash([]);
+      const ang=Math.atan2(tp.y-fp.y,tp.x-fp.x);
+      ctx.save();ctx.translate(tp.x,tp.y);ctx.rotate(ang);
+      ctx.fillStyle=r.type==='include'?'rgba(0,255,136,0.9)':'rgba(255,200,0,0.9)';
+      ctx.beginPath();ctx.moveTo(-10,-5);ctx.lineTo(0,0);ctx.lineTo(-10,5);ctx.fill();
+      ctx.restore();
+      const mx=(fp.x+tp.x)/2,my=(fp.y+tp.y)/2;
+      ctx.fillStyle=r.type==='include'?'#00ff88':'#ffcc00';
+      ctx.font='italic 9px Exo 2,sans-serif';ctx.textAlign='center';
+      ctx.fillText('«'+r.type+'»',mx,my-6);ctx.textAlign='left';
+    }
+  });
+
+  // Draw use cases
+  activeUCs.forEach(uc=>{
+    const pos=ucPos(uc.id);
+    const col=ACT_COLORS[uc.actor];
+    const lines=uc.label.split('\n');
+    const rw=78,rh=28;
+    ctx.save();ctx.shadowColor=col;ctx.shadowBlur=14;
+    ctx.beginPath();ctx.ellipse(pos.x,pos.y,rw,rh,0,0,Math.PI*2);
+    ctx.fillStyle=col+'18';ctx.strokeStyle=col+'bb';ctx.lineWidth=1.5;
+    ctx.fill();ctx.stroke();ctx.restore();
+    ctx.fillStyle='#e0f4ff';ctx.font='600 9px Exo 2,sans-serif';ctx.textAlign='center';
+    if(lines.length===1){ctx.fillText(lines[0],pos.x,pos.y+4);}
+    else{ctx.fillText(lines[0],pos.x,pos.y-4);ctx.fillText(lines[1],pos.x,pos.y+9);}
+    ctx.textAlign='left';
+  });
+
+  // Draw actors
+  ['admin','teacher','student','system'].forEach(ak=>{
+    if(filter!=='all'&&ak!==filter&&!(filter!=='system'&&ak==='system'))return;
+    const ap=actorPositions[ak];const col=ACT_COLORS[ak];
+    ctx.strokeStyle=col;ctx.fillStyle=col;ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(ap.x,ap.y-20,10,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(ap.x,ap.y-10);ctx.lineTo(ap.x,ap.y+12);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(ap.x-13,ap.y);ctx.lineTo(ap.x+13,ap.y);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(ap.x,ap.y+12);ctx.lineTo(ap.x-10,ap.y+26);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(ap.x,ap.y+12);ctx.lineTo(ap.x+10,ap.y+26);ctx.stroke();
+    ctx.font='bold 10px Orbitron,monospace';ctx.textAlign='center';
+    ctx.fillText(ACT_LABELS[ak],ap.x,ap.y+40);ctx.textAlign='left';
+  });
+
+  // Legend
+  const lx=W-175,ly=H-55;
+  ctx.font='9px Share Tech Mono,monospace';
+  [['── association','#00f5ff88'],['- - «include»','#00ff8888'],['- - «extend»','#ffcc0088']].forEach(([txt,col],i)=>{
+    ctx.strokeStyle=col;ctx.lineWidth=1.5;
+    if(i>0)ctx.setLineDash([4,3]);else ctx.setLineDash([]);
+    ctx.beginPath();ctx.moveTo(lx,ly+i*16);ctx.lineTo(lx+26,ly+i*16);ctx.stroke();
+    ctx.setLineDash([]);ctx.fillStyle=col;ctx.fillText(txt,lx+30,ly+i*16+4);
+  });
+}
+
+// IMAGE GENERATOR
+function generateImage(){
+  const type=document.getElementById('genType').value;
+  const theme=document.getElementById('genTheme').value;
+  const res=document.getElementById('genResolution').value;
+  const [W,H]=res.split('x').map(Number);
+  const output=document.getElementById('genOutput');
+  output.innerHTML='<div class="loading-bar"></div><div class="gen-placeholder" style="margin-top:16px">// Rendu en cours...</div>';
+
+  setTimeout(()=>{
+    const canvas=document.createElement('canvas');
+    canvas.width=W;canvas.height=H;
+    const ctx=canvas.getContext('2d');
+    const T={
+      cyber:{bg:'#020813',acc:'#00f5ff',sec:'#8b00ff',txt:'#e0f4ff',grid:'rgba(0,245,255,0.05)'},
+      blueprint:{bg:'#001533',acc:'#4da6ff',sec:'#0088ff',txt:'#cce6ff',grid:'rgba(77,166,255,0.08)'},
+      neon:{bg:'#0a000f',acc:'#ff00ff',sec:'#00ffff',txt:'#ffffff',grid:'rgba(255,0,255,0.07)'},
+      minimal:{bg:'#0d1117',acc:'#58a6ff',sec:'#3fb950',txt:'#c9d1d9',grid:'rgba(255,255,255,0.04)'}
+    }[theme];
+
+    ctx.fillStyle=T.bg;ctx.fillRect(0,0,W,H);
+    ctx.strokeStyle=T.grid;ctx.lineWidth=1;
+    for(let x=0;x<W;x+=50){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+    for(let y=0;y<H;y+=50){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+    if(type==='workflow') renderWorkflow(ctx,W,H,T);
+    else if(type.startsWith('usecase')) renderUseCase(ctx,W,H,T,type.replace('usecase_',''));
+    else renderStructure(ctx,W,H,T);
+
+    // Watermark
+    ctx.fillStyle=T.acc+'44';ctx.font='700 12px monospace';ctx.textAlign='right';
+    ctx.fillText('NEXUS ACADEMIC v2.5.1',W-16,H-12);ctx.textAlign='left';
+
+    output.innerHTML='';output.appendChild(canvas);
+    const dl=document.createElement('a');
+    dl.className='download-btn';dl.textContent='⬡ TÉLÉCHARGER PNG';
+    dl.href=canvas.toDataURL('image/png');dl.download=`nexus_${type}_${theme}.png`;
+    output.appendChild(dl);
+  },700);
+}
+
+function renderWorkflow(ctx,W,H,T){
+  ctx.fillStyle=T.acc;ctx.font='bold 26px Orbitron,monospace';ctx.textAlign='center';
+  ctx.fillText('WORKFLOW ACADÉMIQUE',W/2,42);
+  ctx.fillStyle=T.acc+'77';ctx.font='11px monospace';ctx.fillText('Nexus Academic Management System',W/2,62);
+  ctx.textAlign='left';
+
+  const steps=[
+    {n:'01',label:'Créer Structure',role:'ADMIN',col:'#00f5ff'},
+    {n:'02',label:'Définir Prérequis',role:'ADMIN',col:'#00f5ff'},
+    {n:'03',label:'Créer Cours',role:'ADMIN',col:'#00f5ff'},
+    {n:'04',label:'Lancer Algorithme',role:'SYSTÈME',col:'#cc88ff'},
+    {n:'05',label:'Confirmer Attribution',role:'PROF',col:'#00ff88'},
+    {n:'06',label:'Générer EDT',role:'SYSTÈME',col:'#cc88ff'},
+    {n:'07',label:'Publier EDT',role:'ADMIN',col:'#00f5ff'},
+    {n:'08',label:'Inscription Cours',role:'ÉTUDIANT',col:'#ff88aa'},
+  ];
+
+  const cols=4,rows=2;
+  const pad=36,gap=14;
+  const cw=(W-pad*2-gap*3)/cols;
+  const ch=(H-100-gap)/rows;
+  const startY=80;
+
+  steps.forEach((s,i)=>{
+    const ci=i%cols,ri=Math.floor(i/cols);
+    const x=pad+ci*(cw+gap),y=startY+ri*(ch+gap);
+    ctx.save();ctx.shadowColor=s.col;ctx.shadowBlur=18;
+    ctx.fillStyle=T.bg==='#020813'?'rgba(0,20,50,0.8)':'rgba(0,30,70,0.7)';
+    ctx.strokeStyle=s.col+'99';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(x+10,y);ctx.lineTo(x+cw,y);ctx.lineTo(x+cw,y+ch-10);
+    ctx.lineTo(x+cw-10,y+ch);ctx.lineTo(x,y+ch);ctx.lineTo(x,y+10);ctx.closePath();
+    ctx.fill();ctx.stroke();ctx.restore();
+    // Badge
+    ctx.save();ctx.shadowColor=s.col;ctx.shadowBlur=10;
+    ctx.fillStyle=s.col+'33';ctx.strokeStyle=s.col;ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.arc(x+24,y+24,16,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
+    ctx.fillStyle=s.col;ctx.font='bold 12px Orbitron,monospace';ctx.textAlign='center';
+    ctx.fillText(s.n,x+24,y+29);
+    ctx.fillStyle=s.col+'bb';ctx.font='8px monospace';ctx.fillText(s.role,x+50,y+18);
+    ctx.fillStyle=T.txt;ctx.font='bold 11px Exo 2,sans-serif';ctx.textAlign='left';
+    ctx.fillText(s.label,x+14,y+55);
+    ctx.strokeStyle=s.col+'44';ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(x+10,y+62);ctx.lineTo(x+cw-10,y+62);ctx.stroke();
+    // Arrow
+    if(ci<cols-1){
+      const ax=x+cw+2,ay=y+ch/2;
+      ctx.strokeStyle=T.acc+'66';ctx.lineWidth=2;ctx.setLineDash([5,3]);
+      ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(ax+gap-4,ay);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle=T.acc;ctx.beginPath();ctx.moveTo(ax+gap-5,ay-4);ctx.lineTo(ax+gap,ay);ctx.lineTo(ax+gap-5,ay+4);ctx.fill();
+    }
+  });
+  // Down arrow between rows
+  const midX=W/2,topRowBot=startY+ch,botRowTop=startY+ch+gap;
+  ctx.strokeStyle=T.acc+'66';ctx.lineWidth=2;ctx.setLineDash([6,3]);
+  ctx.beginPath();ctx.moveTo(midX,topRowBot+2);ctx.lineTo(midX,botRowTop-4);ctx.stroke();ctx.setLineDash([]);
+  ctx.fillStyle=T.acc;ctx.beginPath();ctx.moveTo(midX-5,botRowTop-6);ctx.lineTo(midX,botRowTop);ctx.lineTo(midX+5,botRowTop-6);ctx.fill();
+}
+
+function renderUseCase(ctx,W,H,T,filter){
+  ctx.fillStyle=T.acc;ctx.font='bold 22px Orbitron,monospace';ctx.textAlign='center';
+  ctx.fillText('USE CASE — '+filter.toUpperCase(),W/2,40);ctx.textAlign='left';
+  ctx.strokeStyle=T.acc+'44';ctx.lineWidth=1.5;ctx.setLineDash([7,4]);
+  ctx.strokeRect(140,60,W-200,H-90);ctx.setLineDash([]);
+  ctx.fillStyle=T.acc+'88';ctx.font='10px Orbitron,monospace';
+  ctx.fillText('SYSTÈME ACADÉMIQUE',158,78);
+
+  const bx=140,by=60,bw=W-200,bh=H-90;
+  const actors={
+    admin:{x:55,y:H*0.28,label:'Admin'},
+    teacher:{x:55,y:H*0.55,label:'Professeur'},
+    student:{x:55,y:H*0.82,label:'Étudiant'},
+    system:{x:W-55,y:H*0.5,label:'Système'}
+  };
+  const ucMap={
+    admin:[
+      {label:'Créer structure',rx:0.22,ry:0.15},
+      {label:'Définir prérequis',rx:0.46,ry:0.15},
+      {label:'Créer cours',rx:0.7,ry:0.15},
+      {label:'Lancer algorithme',rx:0.3,ry:0.42},
+      {label:'Publier EDT',rx:0.68,ry:0.42},
+    ],
+    teacher:[{label:'Confirmer attribution',rx:0.35,ry:0.62},{label:'Demander révision',rx:0.62,ry:0.62}],
+    student:[{label:"S'inscrire",rx:0.3,ry:0.85},{label:'Consulter EDT',rx:0.58,ry:0.85}],
+    system:[{label:'Vérifier prérequis',rx:0.68,ry:0.77},{label:'Générer EDT',rx:0.68,ry:0.55},{label:'Attribuer auto',rx:0.68,ry:0.35}],
+  };
+  const col={admin:'#00f5ff',teacher:'#00ff88',student:'#ff88aa',system:'#cc88ff'};
+
+  const drawActor=(a,c,lbl)=>{
+    ctx.strokeStyle=c;ctx.fillStyle=c;ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(a.x,a.y,13,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(a.x,a.y+13);ctx.lineTo(a.x,a.y+34);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(a.x-14,a.y+22);ctx.lineTo(a.x+14,a.y+22);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(a.x,a.y+34);ctx.lineTo(a.x-12,a.y+50);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(a.x,a.y+34);ctx.lineTo(a.x+12,a.y+50);ctx.stroke();
+    ctx.font='bold 10px Orbitron,monospace';ctx.textAlign='center';ctx.fillText(lbl,a.x,a.y+64);ctx.textAlign='left';
+  };
+
+  const drawUC2=(lbl,rx,ry,c)=>{
+    const x=bx+30+rx*(bw-60),y=by+20+ry*(bh-40);
+    ctx.save();ctx.shadowColor=c;ctx.shadowBlur=12;
+    ctx.beginPath();ctx.ellipse(x,y,72,26,0,0,Math.PI*2);
+    ctx.fillStyle=c+'1a';ctx.strokeStyle=c+'cc';ctx.lineWidth=1.5;ctx.fill();ctx.stroke();ctx.restore();
+    ctx.fillStyle=T.txt;ctx.font='600 9px Exo 2,sans-serif';ctx.textAlign='center';
+    ctx.fillText(lbl,x,y+4);ctx.textAlign='left';
+    return {x,y};
+  };
+
+  const activeActors=filter==='all'?['admin','teacher','student','system']:
+    filter==='system'?['system']:[filter,'system'];
+
+  activeActors.forEach(ak=>{
+    const a=actors[ak];const c=col[ak];
+    drawActor(a,c,a.label);
+    (ucMap[ak]||[]).forEach(u=>{
+      const pos=drawUC2(u.label,u.rx,u.ry,c);
+      ctx.strokeStyle=c+'55';ctx.lineWidth=1.2;ctx.setLineDash([]);
+      ctx.beginPath();
+      const sx=ak==='system'?a.x-18:a.x+18;
+      ctx.moveTo(sx,a.y+20);ctx.lineTo(pos.x-(ak==='system'?72:-72),pos.y);ctx.stroke();
+    });
+  });
+}
+
+function renderStructure(ctx,W,H,T){
+  ctx.fillStyle=T.acc;ctx.font='bold 22px Orbitron,monospace';ctx.textAlign='center';
+  ctx.fillText('HIÉRARCHIE ACADÉMIQUE',W/2,40);ctx.textAlign='left';
+
+  const nodes=[
+    {l:'Faculté',    x:W/2,      y:90,  c:'#00f5ff',w:130,h:38},
+    {l:'Département',x:W/2,      y:180, c:'#4d9fff',w:140,h:38},
+    {l:'Programme',  x:W/2,      y:270, c:'#8b00ff',w:130,h:38},
+    {l:'Niveaux',    x:W/2-170,  y:380, c:'#cc88ff',w:120,h:38},
+    {l:'Modules',    x:W/2+170,  y:380, c:'#cc88ff',w:120,h:38},
+    {l:'Prérequis',  x:W/2-170,  y:490, c:'#ff88aa',w:120,h:38},
+    {l:'Cours',      x:W/2+170,  y:490, c:'#00ff88',w:110,h:38},
+    {l:'Emploi du Temps',x:W/2,  y:580, c:'#00ff88',w:160,h:38},
+  ];
+  const edges=[[0,1],[1,2],[2,3],[2,4],[3,5],[4,6],[5,7],[6,7]];
+
+  edges.forEach(([a,b])=>{
+    const n1=nodes[a],n2=nodes[b];
+    ctx.strokeStyle=T.acc+'55';ctx.lineWidth=1.8;ctx.setLineDash([6,3]);
+    ctx.beginPath();ctx.moveTo(n1.x,n1.y+n1.h/2);ctx.lineTo(n2.x,n2.y-n2.h/2);ctx.stroke();ctx.setLineDash([]);
+    const ang=Math.atan2(n2.y-n1.y,n2.x-n1.x);
+    ctx.save();ctx.translate(n2.x,n2.y-n2.h/2);ctx.rotate(ang+Math.PI/2);
+    ctx.fillStyle=T.acc;ctx.beginPath();ctx.moveTo(-5,-8);ctx.lineTo(0,0);ctx.lineTo(5,-8);ctx.fill();ctx.restore();
+  });
+
+  nodes.forEach(n=>{
+    ctx.save();ctx.shadowColor=n.c;ctx.shadowBlur=18;
+    ctx.fillStyle=n.c+'22';ctx.strokeStyle=n.c;ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.roundRect(n.x-n.w/2,n.y-n.h/2,n.w,n.h,5);ctx.fill();ctx.stroke();ctx.restore();
+    ctx.fillStyle=T.txt;ctx.font='bold 13px Exo 2,sans-serif';ctx.textAlign='center';
+    ctx.fillText(n.l,n.x,n.y+5);ctx.textAlign='left';
+  });
+}
+
+window.addEventListener('resize',()=>{
+  if(document.getElementById('tab-usecase').classList.contains('active')) drawUCD(curFilter);
+});
+</script>
+</body>
+</html>
