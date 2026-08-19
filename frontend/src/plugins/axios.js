@@ -2,7 +2,7 @@ import axios from 'axios'
 import { ElMessage } from 'element-plus'
 
 const instance = axios.create({
-  baseURL: '/api/v1',
+  baseURL: 'https://api.sgca.ksquad.dev/api/v1',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
