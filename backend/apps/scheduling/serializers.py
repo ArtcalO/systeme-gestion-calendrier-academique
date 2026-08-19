@@ -79,3 +79,33 @@ class GenerateScheduleSerializer(serializers.Serializer):
                 "La date de fin doit être après la date de début."
             )
         return data
+
+
+# Extended serializer for detail views — returns nested objects frontend can use directly
+class ScheduleSlotDetailSerializer(ScheduleSlotSerializer):
+    course_info = serializers.SerializerMethodField()
+    professor_info = serializers.SerializerMethodField()
+    room_info = serializers.SerializerMethodField()
+
+    class Meta(ScheduleSlotSerializer.Meta):
+        fields = ScheduleSlotSerializer.Meta.fields + ['course_info', 'professor_info', 'room_info']
+
+    def get_course_info(self, obj):
+        return {
+            'module_code': obj.course.module.code,
+            'module_name': obj.course.module.name,
+            'level': obj.course.module.level.name,
+        }
+
+    def get_professor_info(self, obj):
+        return {
+            'id': obj.professor.id,
+            'full_name': obj.professor.user.get_full_name(),
+        }
+
+    def get_room_info(self, obj):
+        return {
+            'code': obj.room.code,
+            'name': obj.room.name,
+            'capacity': obj.room.capacity,
+        }

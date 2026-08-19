@@ -1,69 +1,13 @@
-<script >
-	export default {
-		watch: {
-			"$store.state.user":{
-				deep:true,
-				handler(new_val){
-				if(!!new_val){
-					localStorage.setItem('user', JSON.stringify(new_val));
-
-				} else {
-					localStorage.removeItem('user')
-				}
-				}
-			},
-		},
-		mounted(){
-			console.log("mounted app")
-			var user = JSON.parse(localStorage.getItem('user'));
-			if(user) {
-				this.$store.state.user = user;
-			}
-		}
-	} 
-</script>
-
 <template>
-	<div class="app">
-		<router-view :key="$route.fullPath" />
-	</div>
+  <router-view />
 </template>
 
-<style>
-@media print {
-	.nonprintable, button, input{
-		display: none!important;
-		margin: 0!important;
-		padding: 0!important;
-	}
-	nav{
-		display: none !important;
-	}
-	.v-navigation-drawer__content {
-    	display: none;
-	}
-	.main-container{
-	--v-layout-left: 0px;
-	--v-layout-right: 0px;
-	--v-layout-top: 0px;
-	--v-layout-bottom: 0px;
-	}
-	.page{
-		margin: 0!important;
-		padding: 0!important;
-	}
-	body {
-		background: white;
-	}
-	body::after {
-		background: white;
-	}
-	.content,
-	.inner-content,
-	.page-wrapper {
-		margin: 0!important;
-		padding: 0!important;
-	}
-}
+<script setup>
+</script>
 
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #app { height: 100%; }
+body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif; }
+.el-table .el-table__header th { background-color: #f5f7fa !important; font-weight: 600; }
 </style>

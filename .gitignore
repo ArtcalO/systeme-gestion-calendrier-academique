@@ -6,10 +6,13 @@ __pycache__/
 *.pyo
 *.pyd
 
-# Django migrations
-backend/apps/academic/migrations/0001_initial.py
-backend/apps/*/migrations/__pycache__/
-backend/apps/*/migrations/__init__.py
+
+# Django migration files
+**/migrations/*.py
+**/migrations/*.pyc
+
+# Keep migration packages
+!**/migrations/__init__.py
 
 # Environment
 .env

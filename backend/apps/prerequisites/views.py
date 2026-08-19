@@ -3,25 +3,25 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django_filters.rest_framework import DjangoFilterBackend
-from django.utils import timezone
-from .models import ModulePrerequisite, EnrollmentRequest, PrerequisiteCheckResult
-from .serializers import (ModulePrerequisiteSerializer, EnrollmentRequestSerializer,
-                           EnrollmentRequestCreateSerializer, WaiverSerializer)
-from .engine import PrerequisiteEngine, PrerequisiteValidator
+from .models import ModulePrerequisite, PrerequisiteGraph
+from .serializers import ModulePrerequisiteSerializer, PrerequisiteGraphSerializer
+from .engine import PrerequisiteAnalyzer, PrerequisiteValidator
 from apps.users.permissions import IsAdminOrDean
-from apps.academic.models import Module, Program
-from apps.users.models import Student
+from apps.academic.models import Module, Program, Course
 
 
 class ModulePrerequisiteViewSet(viewsets.ModelViewSet):
     """
     Gestion des prérequis de modules.
-    Permet de définir les relations pédagogiques entre modules.
+    Prérequis = cours qui doit être complété avant (ou en parallèle pour coréquisits).
     """
-    queryset = ModulePrerequisite.objects.select_related('module', 'prerequisite')
+    queryset = ModulePrerequisite.objects.select_related(
+        'module', 'module__level', 'prerequisite', 'prerequisite__level'
+    )
     serializer_class = ModulePrerequisiteSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['module', 'prerequisite', 'prerequisite_type']
+    filterset_fields = ['module', 'prerequisite', 'prerequisite_type',
+                        'module__level__program']
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
@@ -30,7 +30,6 @@ class ModulePrerequisiteViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         instance = serializer.save()
-        # Vérifier les cycles après création
         has_cycle, cycle_path = PrerequisiteValidator.detect_cycles(instance.module.id)
         if has_cycle:
             instance.delete()
@@ -40,142 +39,133 @@ class ModulePrerequisiteViewSet(viewsets.ModelViewSet):
             )
 
     @action(detail=False, methods=['get'])
+    def by_module(self, request):
+        """Prérequis d'un module spécifique avec détails de planification"""
+        module_id = request.query_params.get('module_id')
+        if not module_id:
+            return Response({'error': 'module_id requis'}, status=400)
+
+        try:
+            module = Module.objects.get(id=module_id)
+        except Module.DoesNotExist:
+            return Response({'error': 'Module non trouvé'}, status=404)
+
+        deps = PrerequisiteAnalyzer.get_module_dependencies(module)
+        prereqs_qs = ModulePrerequisite.objects.filter(module=module).select_related(
+            'prerequisite', 'prerequisite__level'
+        )
+
+        return Response({
+            'module_id': module.id,
+            'module_code': module.code,
+            'module_name': module.name,
+            'level': module.level.name,
+            'semester': module.semester,
+            'dependencies': deps,
+            'prerequisites': ModulePrerequisiteSerializer(prereqs_qs, many=True).data,
+            'total_strict': len(deps['strict']),
+            'total_corequisites': len(deps['corequisites']),
+            'total_recommended': len(deps['recommended']),
+        })
+
+    @action(detail=False, methods=['get'])
     def validate_program(self, request):
-        """Vérifie la cohérence des prérequis d'un programme entier"""
+        """Vérifie la cohérence des prérequis d'un programme"""
         program_id = request.query_params.get('program_id')
         if not program_id:
-            return Response({'error': 'program_id requis'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'program_id requis'}, status=400)
 
         try:
             program = Program.objects.get(id=program_id)
         except Program.DoesNotExist:
-            return Response({'error': 'Programme non trouvé'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'Programme non trouvé'}, status=404)
 
         errors = PrerequisiteValidator.validate_program_prerequisites(program)
+        planning_order = PrerequisiteAnalyzer.get_planning_order(program)
+
         return Response({
             'program': program.name,
             'is_valid': len(errors) == 0,
             'errors': errors,
             'errors_count': len(errors),
+            'recommended_planning_order': planning_order,
         })
 
+    @action(detail=False, methods=['get'])
+    def graph(self, request):
+        """Graphe de prérequis pour visualisation d'un programme"""
+        program_id = request.query_params.get('program_id')
+        if not program_id:
+            return Response({'error': 'program_id requis'}, status=400)
 
-class EnrollmentRequestViewSet(viewsets.ModelViewSet):
-    """
-    Gestion des demandes d'inscription avec vérification automatique des prérequis.
-    """
-    queryset = EnrollmentRequest.objects.select_related(
-        'student', 'student__user', 'course', 'course__module', 'course__academic_year'
-    ).prefetch_related('check_result')
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['student', 'course', 'status']
+        try:
+            program = Program.objects.get(id=program_id)
+        except Program.DoesNotExist:
+            return Response({'error': 'Programme non trouvé'}, status=404)
 
-    def get_serializer_class(self):
-        if self.action == 'create':
-            return EnrollmentRequestCreateSerializer
-        return EnrollmentRequestSerializer
-
-    def get_permissions(self):
-        if self.action in ['grant_waiver', 'destroy']:
-            return [IsAdminOrDean()]
-        return [IsAuthenticated()]
-
-    def perform_create(self, serializer):
-        """Crée la demande et vérifie automatiquement les prérequis"""
-        enrollment_request = serializer.save()
-        engine = PrerequisiteEngine(enrollment_request.student)
-        engine.process_enrollment_request(enrollment_request)
-
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-
-        # Retourner la réponse avec les détails complets
-        enrollment = serializer.instance
-        return Response(
-            EnrollmentRequestSerializer(enrollment).data,
-            status=status.HTTP_201_CREATED
-        )
-
-    @action(detail=True, methods=['post'], permission_classes=[IsAdminOrDean])
-    def grant_waiver(self, request, pk=None):
-        """
-        Accorde une dérogation pour un étudiant ne satisfaisant pas les prérequis.
-        Réservé aux administrateurs/doyens.
-        """
-        enrollment = self.get_object()
-        serializer = WaiverSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        if enrollment.status == EnrollmentRequest.Status.APPROVED:
-            return Response({'detail': "Cette inscription est déjà approuvée."},
-                            status=status.HTTP_400_BAD_REQUEST)
-
-        enrollment.status = EnrollmentRequest.Status.WAIVED
-        enrollment.waiver_reason = serializer.validated_data['waiver_reason']
-        enrollment.processed_by = request.user
-        enrollment.processed_date = timezone.now()
-        enrollment.save()
+        graph_data = PrerequisiteValidator.generate_graph_data(program)
+        errors = PrerequisiteValidator.validate_program_prerequisites(program)
 
         return Response({
-            'detail': 'Dérogation accordée avec succès.',
-            'enrollment': EnrollmentRequestSerializer(enrollment).data,
+            'program_id': program.id,
+            'program_name': program.name,
+            'graph': graph_data,
+            'is_valid': len(errors) == 0,
+            'validation_errors': errors,
         })
 
     @action(detail=False, methods=['post'])
-    def bulk_check(self, request):
+    def check_course_scheduling(self, request):
         """
-        Vérifie les prérequis pour une liste de modules pour un étudiant.
-        Utile pour afficher l'éligibilité du catalogue.
+        Vérifie si un cours peut être planifié selon ses prérequis.
+        POST body: { course_id, academic_year_id (optionnel) }
         """
-        student_id = request.data.get('student_id')
-        module_ids = request.data.get('module_ids', [])
+        course_id = request.data.get('course_id')
+        academic_year_id = request.data.get('academic_year_id')
 
-        if not student_id:
-            return Response({'error': 'student_id requis'}, status=status.HTTP_400_BAD_REQUEST)
+        if not course_id:
+            return Response({'error': 'course_id requis'}, status=400)
 
         try:
-            student = Student.objects.get(id=student_id)
-        except Student.DoesNotExist:
-            return Response({'error': 'Étudiant non trouvé'}, status=status.HTTP_404_NOT_FOUND)
+            course = Course.objects.select_related('module__level').get(id=course_id)
+        except Course.DoesNotExist:
+            return Response({'error': 'Cours non trouvé'}, status=404)
 
-        engine = PrerequisiteEngine(student)
-        results = []
+        from apps.academic.models import AcademicYear
+        academic_year = None
+        if academic_year_id:
+            try:
+                academic_year = AcademicYear.objects.get(id=academic_year_id)
+            except AcademicYear.DoesNotExist:
+                pass
 
-        modules = Module.objects.filter(id__in=module_ids) if module_ids else Module.objects.all()
-        for module in modules:
-            check = engine.check_prerequisites_for_module(module)
-            results.append({
-                'module_id': module.id,
-                'module_code': module.code,
-                'module_name': module.name,
-                'can_enroll': check['can_enroll'],
-                'missing_count': len(check['missing']),
-                'missing': check['missing'],
-                'warnings_count': len(check['warnings']),
-            })
+        result = PrerequisiteAnalyzer.can_schedule_course(course, academic_year)
+        deps = PrerequisiteAnalyzer.get_module_dependencies(course.module)
 
-        return Response({'student_id': student_id, 'results': results})
+        return Response({
+            'course_id': course.id,
+            'module_code': course.module.code,
+            'module_name': course.module.name,
+            'scheduling_check': result,
+            'dependencies': deps,
+        })
 
     @action(detail=False, methods=['get'])
-    def eligible_modules(self, request):
-        """Modules pour lesquels un étudiant est éligible"""
-        student_id = request.query_params.get('student_id')
-        level_id = request.query_params.get('level_id')
-        semester = request.query_params.get('semester')
-
-        if not student_id:
-            return Response({'error': 'student_id requis'}, status=status.HTTP_400_BAD_REQUEST)
+    def planning_order(self, request):
+        """Ordre de planification recommandé pour un programme"""
+        program_id = request.query_params.get('program_id')
+        if not program_id:
+            return Response({'error': 'program_id requis'}, status=400)
 
         try:
-            student = Student.objects.get(id=student_id)
-        except Student.DoesNotExist:
-            return Response({'error': 'Étudiant non trouvé'}, status=status.HTTP_404_NOT_FOUND)
+            program = Program.objects.get(id=program_id)
+        except Program.DoesNotExist:
+            return Response({'error': 'Programme non trouvé'}, status=404)
 
-        engine = PrerequisiteEngine(student)
-        result = engine.get_eligible_modules(
-            level=level_id,
-            semester=int(semester) if semester else None
-        )
-        return Response(result)
+        order = PrerequisiteAnalyzer.get_planning_order(program)
+        return Response({
+            'program_id': program.id,
+            'program_name': program.name,
+            'planning_order': order,
+            'total_modules': len(order),
+        })

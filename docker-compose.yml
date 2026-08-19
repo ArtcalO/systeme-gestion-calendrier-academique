@@ -1,0 +1,50 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: sgca_db
+      POSTGRES_USER: sgca_user
+      POSTGRES_PASSWORD: sgca_pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgres://sgca_user:sgca_pass@db:5432/sgca_db
+      - SECRET_KEY=dev-secret-key-change-in-production
+      - DEBUG=True
+      - ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
+      - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8000
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

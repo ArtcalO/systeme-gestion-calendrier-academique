@@ -1,230 +1,170 @@
 """
-Moteur de vérification des prérequis - SGCA ULT
-Algorithme de contrôle automatique de la conformité académique
+Moteur de vérification et analyse des prérequis - SGCA ULT
+Analyse des dépendances pour la planification du calendrier académique
 """
-from django.utils import timezone
-from .models import ModulePrerequisite, EnrollmentRequest, PrerequisiteCheckResult
-from apps.academic.models import StudentModuleResult
+from .models import ModulePrerequisite
 
 
-class PrerequisiteEngine:
+class PrerequisiteAnalyzer:
     """
-    Moteur principal de vérification des prérequis.
-    Implémente la logique de contrôle de la progression pédagogique.
-    """
-
-    def __init__(self, student):
-        self.student = student
-        self.completed_modules = self._get_completed_modules()
-        self.in_progress_modules = self._get_in_progress_modules()
-
-    def _get_completed_modules(self):
-        """Récupère tous les modules validés par l'étudiant avec leurs notes"""
-        results = StudentModuleResult.objects.filter(
-            student=self.student, is_validated=True
-        ).select_related('module')
-        return {r.module_id: r for r in results}
-
-    def _get_in_progress_modules(self):
-        """Récupère les modules en cours (inscrits cette année)"""
-        requests = EnrollmentRequest.objects.filter(
-            student=self.student, status='approved'
-        ).select_related('course__module')
-        return {req.course.module_id for req in requests}
-
-    def check_prerequisites_for_module(self, module):
-        """
-        Vérifie si l'étudiant peut s'inscrire à un module donné.
-        Retourne un dictionnaire avec les résultats détaillés.
-        """
-        prerequisites = ModulePrerequisite.objects.filter(
-            module=module
-        ).select_related('prerequisite')
-
-        result = {
-            'can_enroll': True,
-            'missing': [],
-            'met': [],
-            'warnings': [],
-            'corequisites': [],
-        }
-
-        for prereq in prerequisites:
-            prereq_module = prereq.prerequisite
-            check = self._check_single_prerequisite(prereq)
-
-            if prereq.prerequisite_type == ModulePrerequisite.PrerequisiteType.STRICT:
-                if check['satisfied']:
-                    result['met'].append({
-                        'module_code': prereq_module.code,
-                        'module_name': prereq_module.name,
-                        'grade': check['grade'],
-                        'required_grade': float(prereq.minimum_grade),
-                    })
-                else:
-                    result['can_enroll'] = False
-                    result['missing'].append({
-                        'module_code': prereq_module.code,
-                        'module_name': prereq_module.name,
-                        'grade': check['grade'],
-                        'required_grade': float(prereq.minimum_grade),
-                        'reason': check['reason'],
-                    })
-
-            elif prereq.prerequisite_type == ModulePrerequisite.PrerequisiteType.RECOMMENDED:
-                if not check['satisfied']:
-                    result['warnings'].append({
-                        'module_code': prereq_module.code,
-                        'module_name': prereq_module.name,
-                        'message': f"Module recommandé non suivi: {prereq_module.name}",
-                    })
-                else:
-                    result['met'].append({
-                        'module_code': prereq_module.code,
-                        'module_name': prereq_module.name,
-                        'grade': check['grade'],
-                        'type': 'recommended',
-                    })
-
-            elif prereq.prerequisite_type == ModulePrerequisite.PrerequisiteType.COREQUISITE:
-                if prereq_module.id in self.in_progress_modules or \
-                   prereq_module.id in self.completed_modules:
-                    result['corequisites'].append({
-                        'module_code': prereq_module.code,
-                        'module_name': prereq_module.name,
-                        'status': 'met',
-                    })
-                else:
-                    result['can_enroll'] = False
-                    result['missing'].append({
-                        'module_code': prereq_module.code,
-                        'module_name': prereq_module.name,
-                        'required_grade': float(prereq.minimum_grade),
-                        'reason': "Coréquisit non inscrit simultanément",
-                    })
-
-        return result
-
-    def _check_single_prerequisite(self, prereq_relation):
-        """Vérifie un prérequis individuel"""
-        prereq_module = prereq_relation.prerequisite
-        module_id = prereq_module.id
-
-        if module_id not in self.completed_modules:
-            return {
-                'satisfied': False,
-                'grade': None,
-                'reason': f"Module '{prereq_module.name}' non encore validé"
-            }
-
-        result = self.completed_modules[module_id]
-        if result.grade is not None and result.grade < prereq_relation.minimum_grade:
-            return {
-                'satisfied': False,
-                'grade': float(result.grade),
-                'reason': f"Note insuffisante: {result.grade}/20 (min: {prereq_relation.minimum_grade}/20)"
-            }
-
-        return {
-            'satisfied': True,
-            'grade': float(result.grade) if result.grade else None,
-            'reason': None
-        }
-
-    def process_enrollment_request(self, enrollment_request):
-        """
-        Traite une demande d'inscription en vérifiant automatiquement les prérequis.
-        Crée un PrerequisiteCheckResult détaillé.
-        """
-        module = enrollment_request.course.module
-        check = self.check_prerequisites_for_module(module)
-
-        # Créer ou mettre à jour le résultat de vérification
-        check_result, _ = PrerequisiteCheckResult.objects.update_or_create(
-            enrollment_request=enrollment_request,
-            defaults={
-                'all_prerequisites_met': check['can_enroll'],
-                'missing_prerequisites': check['missing'],
-                'met_prerequisites': check['met'],
-                'warnings': check['warnings'],
-                'summary': self._generate_summary(check, module),
-            }
-        )
-
-        # Mettre à jour le statut de la demande
-        if check['can_enroll']:
-            enrollment_request.status = EnrollmentRequest.Status.APPROVED
-        else:
-            enrollment_request.status = EnrollmentRequest.Status.REJECTED
-            enrollment_request.rejection_reason = self._format_rejection_reason(check['missing'])
-
-        enrollment_request.processed_date = timezone.now()
-        enrollment_request.save()
-
-        return check_result
-
-    def get_eligible_modules(self, level=None, semester=None):
-        """
-        Retourne la liste des modules pour lesquels l'étudiant est éligible.
-        """
-        from apps.academic.models import Module
-        qs = Module.objects.prefetch_related('prerequisites')
-
-        if level:
-            qs = qs.filter(level=level)
-        if semester:
-            qs = qs.filter(semester=semester)
-
-        eligible = []
-        ineligible = []
-
-        for module in qs:
-            check = self.check_prerequisites_for_module(module)
-            item = {
-                'module': {
-                    'id': module.id,
-                    'code': module.code,
-                    'name': module.name,
-                    'credits': module.credits,
-                    'weekly_hours': module.weekly_hours,
-                },
-                'check': check,
-            }
-            if check['can_enroll']:
-                eligible.append(item)
-            else:
-                ineligible.append(item)
-
-        return {'eligible': eligible, 'ineligible': ineligible}
-
-    def _generate_summary(self, check, module):
-        if check['can_enroll']:
-            return (f"Inscription autorisée pour '{module.name}'. "
-                    f"{len(check['met'])} prérequis satisfaits. "
-                    f"{len(check['warnings'])} recommandations non suivies.")
-        else:
-            missing_names = [m['module_name'] for m in check['missing']]
-            return (f"Inscription refusée pour '{module.name}'. "
-                    f"Prérequis manquants: {', '.join(missing_names)}.")
-
-    def _format_rejection_reason(self, missing):
-        if not missing:
-            return ""
-        reasons = []
-        for m in missing:
-            reasons.append(f"• {m['module_code']} - {m['module_name']}: {m['reason']}")
-        return "\n".join(reasons)
-
-
-class PrerequisiteValidator:
-    """
-    Validateur statique pour vérifier la cohérence des prérequis
-    lors de la création/modification de la structure académique.
+    Analyse les dépendances de prérequis pour la planification.
+    Utilisé pour valider qu'un cours peut être planifié selon ses prérequis.
     """
 
     @staticmethod
+    def get_module_dependencies(module):
+        """
+        Retourne toutes les dépendances d'un module:
+        - prerequisites: cours qui DOIVENT être terminés avant
+        - corequisites: cours qui peuvent être suivis en parallèle
+        - recommended: cours recommandés avant
+        """
+        prereqs = ModulePrerequisite.objects.filter(module=module).select_related('prerequisite')
+
+        result = {
+            'strict': [],
+            'corequisites': [],
+            'recommended': [],
+        }
+
+        for p in prereqs:
+            item = {
+                'id': p.prerequisite.id,
+                'code': p.prerequisite.code,
+                'name': p.prerequisite.name,
+                'level': p.prerequisite.level.name,
+                'semester': p.prerequisite.semester,
+                'minimum_grade': float(p.minimum_grade),
+                'description': p.description,
+            }
+            if p.prerequisite_type == 'strict':
+                result['strict'].append(item)
+            elif p.prerequisite_type == 'coreq':
+                result['corequisites'].append(item)
+            else:
+                result['recommended'].append(item)
+
+        return result
+
+    @staticmethod
+    def can_schedule_course(course, academic_year=None):
+        """
+        Vérifie si un cours peut être planifié dans une année académique donnée.
+        Vérifie que les cours prérequis stricts ont été ou seront planifiés
+        dans des semestres/années précédents.
+        """
+        from apps.academic.models import Course
+        module = course.module
+        prereqs = ModulePrerequisite.objects.filter(
+            module=module,
+            prerequisite_type='strict'
+        ).select_related('prerequisite')
+
+        result = {
+            'can_schedule': True,
+            'warnings': [],
+            'errors': [],
+            'prerequisites_status': [],
+        }
+
+        for prereq_rel in prereqs:
+            prereq_module = prereq_rel.prerequisite
+            status_item = {
+                'module_code': prereq_module.code,
+                'module_name': prereq_module.name,
+                'type': 'strict',
+                'status': 'unknown',
+            }
+
+            # Vérifier si le prérequis est dans un niveau/semestre antérieur logique
+            if prereq_module.level.year_number > module.level.year_number:
+                result['errors'].append(
+                    f"Le prérequis {prereq_module.code} est dans un niveau supérieur — incohérence."
+                )
+                status_item['status'] = 'error'
+                result['can_schedule'] = False
+            elif prereq_module.level.year_number == module.level.year_number and \
+                 prereq_module.semester >= course.semester:
+                result['warnings'].append(
+                    f"Le prérequis {prereq_module.code} est dans le même semestre ou après — vérifier la logique."
+                )
+                status_item['status'] = 'warning'
+            else:
+                # Vérifier si ce cours prérequis existe dans le planning
+                if academic_year:
+                    prereq_course = Course.objects.filter(
+                        module=prereq_module, academic_year=academic_year
+                    ).first()
+                    status_item['status'] = 'scheduled' if prereq_course else 'not_scheduled'
+                    if not prereq_course:
+                        result['warnings'].append(
+                            f"Le prérequis {prereq_module.code} n'est pas planifié cette année académique."
+                        )
+                else:
+                    status_item['status'] = 'ok'
+
+            result['prerequisites_status'].append(status_item)
+
+        return result
+
+    @staticmethod
+    def get_planning_order(program):
+        """
+        Retourne l'ordre de planification recommandé pour les modules d'un programme,
+        en tenant compte des dépendances (topological sort).
+        """
+        from apps.academic.models import Module
+        modules = list(Module.objects.filter(level__program=program).select_related('level'))
+
+        # Build dependency graph
+        module_map = {m.id: m for m in modules}
+        deps = {m.id: set() for m in modules}
+
+        for prereq_rel in ModulePrerequisite.objects.filter(
+            module__level__program=program,
+            prerequisite_type='strict'
+        ):
+            if prereq_rel.module_id in deps and prereq_rel.prerequisite_id in module_map:
+                deps[prereq_rel.module_id].add(prereq_rel.prerequisite_id)
+
+        # Topological sort (Kahn's algorithm)
+        in_degree = {mid: len(d) for mid, d in deps.items()}
+        queue = [mid for mid, d in in_degree.items() if d == 0]
+        order = []
+
+        while queue:
+            mid = queue.pop(0)
+            order.append(mid)
+            for other_id, other_deps in deps.items():
+                if mid in other_deps:
+                    other_deps.discard(mid)
+                    in_degree[other_id] -= 1
+                    if in_degree[other_id] == 0:
+                        queue.append(other_id)
+
+        # Build result with ordering info
+        result = []
+        for i, mid in enumerate(order):
+            if mid in module_map:
+                m = module_map[mid]
+                result.append({
+                    'order': i + 1,
+                    'module_id': m.id,
+                    'module_code': m.code,
+                    'module_name': m.name,
+                    'level': m.level.name,
+                    'semester': m.semester,
+                    'year_number': m.level.year_number,
+                })
+
+        return result
+
+
+class PrerequisiteValidator:
+    """Validateur statique pour la cohérence des prérequis"""
+
+    @staticmethod
     def detect_cycles(module_id, visited=None, path=None):
-        """Algorithme DFS pour détecter les cycles dans le graphe des prérequis"""
         if visited is None:
             visited = set()
         if path is None:
@@ -251,10 +191,6 @@ class PrerequisiteValidator:
 
     @staticmethod
     def validate_program_prerequisites(program):
-        """
-        Vérifie que tous les prérequis d'un programme sont cohérents.
-        Retourne une liste d'erreurs.
-        """
         errors = []
         from apps.academic.models import Module
         modules = Module.objects.filter(level__program=program)
@@ -269,19 +205,52 @@ class PrerequisiteValidator:
                     'path': cycle_path,
                 })
 
-            # Vérifier que les prérequis ne sont pas dans un niveau supérieur
             for prereq_rel in ModulePrerequisite.objects.filter(module=module):
                 prereq = prereq_rel.prerequisite
-                if prereq.level.year_number >= module.level.year_number:
-                    if prereq.semester >= module.semester or \
-                       prereq.level.year_number > module.level.year_number:
-                        errors.append({
-                            'type': 'level_inconsistency',
-                            'module': module.code,
-                            'prerequisite': prereq.code,
-                            'message': (f"Le prérequis {prereq.code} (N{prereq.level.year_number} "
-                                       f"S{prereq.semester}) ne précède pas logiquement "
-                                       f"{module.code} (N{module.level.year_number} S{module.semester})")
-                        })
+                if prereq.level.year_number > module.level.year_number:
+                    errors.append({
+                        'type': 'level_inconsistency',
+                        'module': module.code,
+                        'prerequisite': prereq.code,
+                        'message': (
+                            f"Le prérequis {prereq.code} (N{prereq.level.year_number} "
+                            f"S{prereq.semester}) est dans un niveau SUPÉRIEUR à "
+                            f"{module.code} (N{module.level.year_number} S{module.semester})"
+                        )
+                    })
 
         return errors
+
+    @staticmethod
+    def generate_graph_data(program):
+        """Génère les données de graphe pour visualisation (nodes + edges)"""
+        from apps.academic.models import Module
+        modules = Module.objects.filter(level__program=program).select_related('level', 'subject')
+
+        nodes = []
+        for m in modules:
+            nodes.append({
+                'id': m.id,
+                'code': m.code,
+                'name': m.name,
+                'level': m.level.name,
+                'year_number': m.level.year_number,
+                'semester': m.semester,
+                'credits': m.credits,
+                'group': f"N{m.level.year_number}S{m.semester}",
+            })
+
+        edges = []
+        for prereq_rel in ModulePrerequisite.objects.filter(
+            module__level__program=program
+        ).select_related('module', 'prerequisite'):
+            edges.append({
+                'id': prereq_rel.id,
+                'source': prereq_rel.prerequisite_id,
+                'target': prereq_rel.module_id,
+                'type': prereq_rel.prerequisite_type,
+                'minimum_grade': float(prereq_rel.minimum_grade),
+                'description': prereq_rel.description,
+            })
+
+        return {'nodes': nodes, 'edges': edges}

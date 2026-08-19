@@ -1,27 +1,65 @@
 import axios from 'axios'
-import store from '../store'
+import { ElMessage } from 'element-plus'
 
-let API_URL = "/api/v1"
-
-function url(){
-  let base_url = ""
-  let base_host = window.location.host.split(":")[0]
-  let locals = ["localhost", "127.0.0.1"]
-  if(locals.includes(base_host)){
-    base_url = window.location.protocol+"//"+base_host+":8000"
+const instance = axios.create({
+  baseURL: '/api/v1',
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
   }
-  return base_url + API_URL;
-
-  //return "https://api.school.ksquad.dev/api"
-}
-export const axiosService = axios.create({
-	baseURL: url()
 })
 
+// Request interceptor - attach JWT token
+instance.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('access_token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+  },
+  (error) => Promise.reject(error)
+)
 
-axiosService.interceptors.request.use((config) => {
-	config.headers.Authorization = store.state.user?.access ? `Bearer ${store.state.user?.access}` : ''
-	return config
-})
+// Response interceptor - handle errors & token refresh
+instance.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config
 
-export const obrAxios = axios.create()
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true
+      const refreshToken = localStorage.getItem('refresh_token')
+
+      if (refreshToken) {
+        try {
+          const res = await axios.post('/api/v1/auth/refresh/', { refresh: refreshToken })
+          const newAccess = res.data.access
+          localStorage.setItem('access_token', newAccess)
+          originalRequest.headers.Authorization = `Bearer ${newAccess}`
+          return instance(originalRequest)
+        } catch {
+          localStorage.removeItem('access_token')
+          localStorage.removeItem('refresh_token')
+          window.location.href = '/login'
+        }
+      } else {
+        window.location.href = '/login'
+      }
+    }
+
+    const msg = error.response?.data?.detail
+      || error.response?.data?.error
+      || error.response?.data?.message
+      || 'Une erreur est survenue'
+
+    if (error.response?.status !== 401) {
+      ElMessage.error(typeof msg === 'object' ? JSON.stringify(msg) : msg)
+    }
+
+    return Promise.reject(error)
+  }
+)
+
+export default instance
